@@ -1,0 +1,3 @@
+[submodule "c_library_v2"]
+	path = c_library_v2
+	url = https://github.com/jazzazi007/c_library_v2.git
