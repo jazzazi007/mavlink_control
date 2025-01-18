@@ -1,5 +1,5 @@
 
-#include "../c_library_v2/common/mavlink.h"
+#include "c_library_v2/common/mavlink.h"
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ int open_scket()
         perror("socket");
         return -1;
     }
-    printf("Socket opened \n");
+    fprintf(stderr, "Socket opened \n");
     return sock;
 }
 
