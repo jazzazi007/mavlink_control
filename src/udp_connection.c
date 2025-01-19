@@ -1,13 +1,16 @@
+/*
+ * File: test.c
+ * Author: Jazzazi 
+ * 
+ *          maaljazzazi22@eng.just.edu.jo
+ * 
+ * Description: This file contains the implementation of a MAVLink heartbeat sender and receiver.
+ *              It sends heartbeat messages to a specified IP address and UDP port, and listens
+ *              for incoming MAVLink messages.
+ */
+#include "../include/gnc.h"
 
-#include "c_library_v2/common/mavlink.h"
-#include <stdio.h>
-#include <sys/time.h>
-#include <stdlib.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-
-void heart_prep(mavlink_message_t *msg, uint8_t *buf, ssize_t *len)
+static void heart_prep(mavlink_message_t *msg, uint8_t *buf, ssize_t *len)
 {
     mavlink_heartbeat_t heartbeat;
         heartbeat.type = MAV_TYPE_GCS;
@@ -17,9 +20,8 @@ void heart_prep(mavlink_message_t *msg, uint8_t *buf, ssize_t *len)
         heartbeat.system_status = MAV_STATE_ACTIVE;
         mavlink_msg_heartbeat_encode(1, 200, &msg, &heartbeat);
         len = mavlink_msg_to_send_buffer(buf, &msg);
-        fprintf("Heartbeat prepared, %u \n", len);
 }
-int open_scket()
+static int open_scket()
 {
     int sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock < 0) {
@@ -45,7 +47,6 @@ int main(int ac, char **av) {
     printf("IP address: %s, UDP port: %d\n", ip_addr, udp_port);
     // Create socket
     int sockfd = open_scket();
-
     // Set up the server address (SITL's IP address and UDP port)
     memset(&autopilot_addr, 0, sizeof(autopilot_addr));
     autopilot_addr.sin_family = AF_INET;
@@ -56,6 +57,7 @@ int main(int ac, char **av) {
         close(sockfd);
         return -1;
     }
+    printf("Socket bound\n");
 
     while (1) {
         // Prepare a MAVLink heartbeat message (example)
@@ -99,6 +101,13 @@ int main(int ac, char **av) {
                             mavlink_msg_heartbeat_decode(&msg, &heartbeat_msg);
                             printf("Received HEARTBEAT: Type: %d, Autopilot: %d\n", heartbeat_msg.type, heartbeat_msg.autopilot);
                         }
+                        if (msg.msgid == MAVLINK_MSG_ID_GPS_RAW_INT)
+                        {
+                            mavlink_gps_raw_int_t gps_raw_int;
+                            mavlink_msg_gps_raw_int_decode(&msg, &gps_raw_int);
+                            printf("Received GPS_RAW_INT: Lat: %d, Lon: %d\n", gps_raw_int.lat, gps_raw_int.lon);
+                            printf("Received GPS_RAW_INT: Alt: %d, VD: %d\n", gps_raw_int.alt, gps_raw_int.vel);
+                        }
                     }
                 }
             }
@@ -109,7 +118,7 @@ int main(int ac, char **av) {
         }
 
         // Sleep for a while before sending the next heartbeat
-        sleep(0.0001);
+        sleep(0.001);
     }
 
     // Close the socket
