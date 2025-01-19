@@ -1,7 +1,5 @@
 #include "../include/gnc.h"
 
-
-
 static sdl_prep win_prep()
 {
     sdl_prep sdl_prep;
@@ -35,6 +33,21 @@ static sdl_prep win_prep()
     return sdl_prep;
 }
 
+void gnc()
+{
+    /*
+    * setup the intial state of fixed wing
+    * measure relative velocity
+    * calculate the line of sight
+    * rate of the line of sight
+    * velocity of persuer and target
+    * attitude and oriantation
+    * pure proportional navigation
+    * set limits of speed and acceleration
+    * get the required command of velocity and acceleration
+    */
+}
+
 int main() 
 { 
     sdl_prep sdl_prep = win_prep();
@@ -60,7 +73,7 @@ int main()
         angle += SPEED;
 
         // Clear the screen
-        SDL_SetRenderDrawColor(sdl_prep.ren, 0, 0, 0, 255); // Black color
+        SDL_SetRenderDrawColor(sdl_prep.ren, 0, 0, 150, 150); // Black color
         SDL_RenderClear(sdl_prep.ren);
 
         // Draw the point
@@ -71,6 +84,9 @@ int main()
                 int dy = POINT_RADIUS - h; // vertical offset
                 if ((dx*dx + dy*dy) <= (POINT_RADIUS * POINT_RADIUS)) {
                     SDL_RenderDrawPoint(sdl_prep.ren, x + dx, y + dy);
+                    SDL_RenderDrawPoint(sdl_prep.ren, 200+dx, 200+dy);
+                    printf("x: %d, y: %d\n", x + dx, y + dy);
+
                 }
             }
         }
