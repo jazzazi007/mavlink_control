@@ -1,0 +1,7 @@
+#sm file
+gcc -o sm sm.c -lm
+./sm
+
+#gnc file
+gcc -o gnc gnc.c -lSDL2 -lSDL2_ttf -lm
+./gnc
