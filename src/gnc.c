@@ -46,6 +46,43 @@ void gnc()
     * set limits of speed and acceleration
     * get the required command of velocity and acceleration
     */
+    //missile
+    double lat = 0; //representing x
+    //double lon = 0;
+    double alt = 0;// representing y
+    double vel = 0;
+    
+    //target
+    double t_lat = 200;
+    //double t_lon = 0;
+    double t_alt = 400;
+    double t_vel = 0;
+
+    // normalization of position
+    double dx = t_lat - lat;
+    double dy = t_alt - alt;
+
+    double distance = sqrt(pow(dx, 2) + pow(dy, 2));
+    while(distance > 0.5)
+    {
+        dx = t_lat - lat;
+        dy = t_alt - alt;
+        distance = sqrt(pow(dx, 2) + pow(dy, 2));
+        
+        double theta = atan2(dy, dx);
+        double theta_deg = theta * 180 / M_PI;
+        double nx = dx / distance;
+        double ny = dy / distance;
+        printf("distance: %f, theta: %f, nx: %f, ny: %f\n", distance, theta_deg, nx, ny);
+
+        //relative velocity
+
+    }
+
+    
+
+
+
 }
 
 int main() 
@@ -85,8 +122,7 @@ int main()
                 if ((dx*dx + dy*dy) <= (POINT_RADIUS * POINT_RADIUS)) {
                     SDL_RenderDrawPoint(sdl_prep.ren, x + dx, y + dy);
                     SDL_RenderDrawPoint(sdl_prep.ren, 200+dx, 200+dy);
-                    printf("x: %d, y: %d\n", x + dx, y + dy);
-
+                    gnc();
                 }
             }
         }
