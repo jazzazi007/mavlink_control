@@ -10,6 +10,12 @@
  */
 #include "../include/gnc.h"
 
+#define BUFFER_LENGTH 2041
+#define DEFAULT_TARGET_SYSTEM 1     // Default to system ID 1 (typical for autopilot)
+#define DEFAULT_TARGET_COMPONENT 1  // Default to component ID 1 (flight controller)
+#define GCS_SYSTEM_ID 255          // Ground Control Station ID
+#define GCS_COMPONENT_ID 0         // GCS component ID
+
 static void heart_prep(mavlink_message_t *msg, uint8_t *buf, ssize_t *len)
 {
     mavlink_heartbeat_t heartbeat;
@@ -30,6 +36,68 @@ static int open_scket()
     }
     fprintf(stderr, "Socket opened \n");
     return sock;
+}
+
+void send_rc_override(int sockfd, struct sockaddr_in* target_addr) {
+    uint8_t buf[BUFFER_LENGTH];
+    mavlink_message_t msg;
+    mavlink_rc_channels_override_t rc_override;
+    uint16_t len;
+
+    // Set RC channel values
+    rc_override.chan1_raw = 1500;    // Roll
+    rc_override.chan2_raw = 1500;    // Pitch
+    rc_override.chan3_raw = 1500;    // Throttle
+    rc_override.chan4_raw = 1500;    // Yaw
+    rc_override.chan5_raw = 1600;
+    rc_override.chan6_raw = 2000;
+    rc_override.chan7_raw = 1500;
+    rc_override.chan8_raw = 1100;
+    rc_override.target_system = DEFAULT_TARGET_SYSTEM;
+    rc_override.target_component = DEFAULT_TARGET_COMPONENT;
+
+    // Pack message
+    mavlink_msg_rc_channels_override_encode(GCS_SYSTEM_ID, GCS_COMPONENT_ID, &msg, &rc_override);
+    
+    // Convert to buffer and send
+    len = mavlink_msg_to_send_buffer(buf, &msg);
+    sendto(sockfd, buf, len, 0, (struct sockaddr*)target_addr, sizeof(struct sockaddr_in));
+    
+    printf("Sent RC_OVERRIDE message\n");
+}
+
+int send_mavlink_message(int sockfd, struct sockaddr_in* target_addr) {
+    uint8_t buf[BUFFER_LENGTH];
+    mavlink_message_t msg;
+    uint16_t len;
+
+    // Pack heartbeat message
+    mavlink_msg_heartbeat_pack(
+        GCS_SYSTEM_ID,           // Source system
+        GCS_COMPONENT_ID,        // Source component
+        &msg,
+        MAV_TYPE_GCS,           // Type = Ground Control Station
+        MAV_AUTOPILOT_INVALID,  // Autopilot type
+        MAV_MODE_MANUAL_ARMED,  // System mode
+        0,                      // Custom mode
+        MAV_STATE_ACTIVE       // System state
+    );
+
+    // Copy message to send buffer
+    len = mavlink_msg_to_send_buffer(buf, &msg);
+
+    // Send message
+    ssize_t bytes_sent = sendto(sockfd, buf, len, 0, 
+                               (struct sockaddr*)target_addr, 
+                               sizeof(struct sockaddr_in));
+    
+    if (bytes_sent == -1) {
+        perror("Error sending message");
+        return -1;
+    }
+
+    printf("Sent message with length: %d\n", len);
+    return 0;
 }
 
 int main(int ac, char **av) {
@@ -111,6 +179,29 @@ int main(int ac, char **av) {
                     }
                 }
             }
+            /*mavlink_rc_channels_override_t rc_override;
+            rc_override.chan1_raw = 1600;
+            rc_override.chan2_raw = 1500;
+            rc_override.chan3_raw = 1600;
+            rc_override.chan4_raw = 1500;
+            rc_override.chan5_raw = 0;
+            rc_override.chan6_raw = 0;
+            rc_override.chan7_raw = 0;
+            rc_override.chan8_raw = 0;
+            rc_override.target_system = 1;
+            rc_override.target_component = 1;
+            mavlink_msg_rc_channels_override_encode(1, 200, &msg, &rc_override);
+            len = mavlink_msg_to_send_buffer(buf, &msg);
+            sendto(sockfd, buf, len, 0, (struct sockaddr*)&autopilot_addr, sizeof(autopilot_addr));
+            */
+            // In main loop where you receive messages
+            if (recvfrom(sockfd, buf, BUFFER_LENGTH, 0, 
+                         (struct sockaddr *)&autopilot_addr, &addr_len) > 0) {
+                // ... handle received message ...
+                
+                // Send response
+                send_mavlink_message(sockfd, &autopilot_addr);
+            }
         } else 
         {
             // No data within the timeout period
@@ -118,7 +209,9 @@ int main(int ac, char **av) {
         }
 
         // Sleep for a while before sending the next heartbeat
-        sleep(0.001);
+        sleep(0.5);
+
+        send_rc_override(sockfd, &autopilot_addr);
     }
 
     // Close the socket

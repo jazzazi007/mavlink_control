@@ -5,3 +5,10 @@ gcc -o sm sm.c -lm
 #gnc file
 gcc -o gnc gnc.c -lSDL2 -lSDL2_ttf -lm
 ./gnc
+
+
+im_vehicle.py -v ArduPlane -f gazebo-zephyr --model JSON --map --console --out 127.0.0.1:5764
+
+
+gz sim -v4 -r zephyr_runway.sdf
+

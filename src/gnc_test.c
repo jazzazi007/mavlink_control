@@ -1,72 +1,64 @@
-// filepath: /home/joddb/mavlink_control/src/gnc.c
-#include "../include/gnc.h"
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <conio.h>
 
-void normalization(sts *state)
-{
-    state->prev_lat = state->lat;
-    state->prev_alt = state->alt;
-    state->prev_t_lat = state->t_lat;
-    state->prev_t_alt = state->t_alt;
-    state->dx = state->t_lat - state->lat;
-    state->dy = state->t_alt - state->alt;
-    state->distance = sqrt(pow(state->dx, 2) + pow(state->dy, 2));
-    state->theta = atan2(state->dy, state->dx);
-    state->theta_deg = state->theta * 180 / M_PI;
-    state->nx = state->dx / state->distance;
-    state->ny = state->dy / state->distance;
-    printf("dx = %f, dy = %f\n", state->dx, state->dy);
-    printf("distance: %f, theta: %f, nx: %f, ny: %f\n", state->distance, state->theta_deg, state->nx, state->ny);
-}
+void set_nonblocking_mode(int enable) {
+    struct termios tty;
+    tcgetattr(STDIN_FILENO, &tty);
+    if (enable) {
+        tty.c_lflag &= ~(ICANON | ECHO);
+        tty.c_cc[VMIN] = 1;
+        tty.c_cc[VTIME] = 0;
+    } else {
+        tty.c_lflag |= (ICANON | ECHO);
+    }
+    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
 
-void gnc()
-{
-    /*
-    * setup the intial state of fixed wing
-    * measure relative velocity
-    * calculate the line of sight
-    * rate of the line of sight
-    * velocity of persuer and target
-    * attitude and oriantation
-    * pure proportional navigation
-    * set limits of speed and acceleration
-    * get the required command of velocity and acceleration
-    */   
-    //missile
-    sts state;
-    state.lat = 0; //representing x
-    //state.lon = 0;
-    state.alt = 0;// representing y
-    state.vel = 21;
-    
-    //target
-    state.t_lat = 200;
-    //state.t_lon = 0;
-    state.t_alt = 400;
-    state.t_vel = 0;
-
-
-
-    state.dt = 0.1;
-
-    normalization(&state);
-
-    while(state.distance > 0.5)
-    {
-        normalization(&state); 
-        printf("d: %f, theta: %f, nx: %f, ny: %f\n", state.distance, state.theta_deg, state.nx, state.ny);
-
-        // Update positions (example update, replace with actual logic)
-        state.theta_dot = state.vel * (state.ny * state.t_vel_x - state.nx * state.t_vel_y) / pow(state.distance, 2);
-        state.lat += state.nx * state.vel * state.dt;
-        state.alt += state.ny * state.vel * state.dt;
-        state.t_lat += state.nx * state.t_vel * state.dt;
-        state.t_alt += state.ny * state.t_vel * state.dt;
-        printf("theta_dot : %f lat: %f, alt: %f, t_lat: %f, t_alt: %f\n", state.theta_dot,state.lat, state.alt, state.t_lat, state.t_alt);
-        sleep(1);
+    int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+    if (enable) {
+        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+    } else {
+        fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
     }
 }
 
 int main() {
-    gnc();
+    char c;
+    printf("Press space bar to perform action, any other key to continue...\n");
+
+    set_nonblocking_mode(1);
+    int i = 0;
+
+    while (1) {
+        c = getchar();
+        if (c != EOF) {
+            if (c == ' ') {
+                // Perform action if space bar is pressed
+                printf("Space bar pressed. Performing action...\n");
+                i = 27;
+                // Add your logic here
+            } else {
+                // Continue with the rest of the code
+                printf("Continuing with the rest of the code...\n");
+                            i=0; 
+
+                // Add the rest of your code here
+                // break; // Exit the loop if not space bar
+            }
+        } else {
+            // No input, continue with the rest of the code
+            printf("No input. Continuing...\n");
+            // Add the rest of your code here
+        }
+        if (i == 27) {
+            printf("Exiting the loop...\n");
+        }
+
+        usleep(1000); // Sleep for 100 milliseconds
+    }
+
+    set_nonblocking_mode(0);
     return 0;
 }
